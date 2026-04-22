@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JWT Auth Service</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#060a12;color:#e2e8f0;
+  min-height:100vh;display:flex;
+  align-items:flex-start;justify-content:center;
+  padding:2rem 1rem 4rem;
+}
+
+.bg-grid{
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(99,102,241,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(99,102,241,0.04) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;
+}
+
+.glow{
+  position:fixed;top:-100px;left:50%;transform:translateX(-50%);
+  width:700px;height:350px;
+  background:radial-gradient(ellipse,rgba(99,102,241,0.12) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+.app{width:100%;max-width:700px;position:relative;z-index:2;}
+
+/* ── Header ── */
+.header{text-align:center;margin-bottom:1.75rem;padding-top:0.5rem;}
+
+.logo-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;}
+
+.logo-icon{
+  width:44px;height:44px;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 0 28px rgba(99,102,241,0.4);
+}
+
+.header h1{
+  font-size:28px;font-weight:700;
+  background:linear-gradient(135deg,#f1f5f9 30%,#94a3b8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;letter-spacing:-0.5px;
+}
+
+.tagline{font-size:11px;color:#334155;font-family:'Courier New',monospace;}
+
+/* ── URL Bar ── */
+.url-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:40px;margin-bottom:1.5rem;
+}
+
+.url-dot{width:7px;height:7px;border-radius:50%;background:#1e293b;flex-shrink:0;}
+.url-dot.g{background:#4ade80;box-shadow:0 0 7px rgba(74,222,128,0.7);animation:blink 2s infinite;}
+.url-dot.r{background:#f87171;}
+
+.url-text{flex:1;font-size:12px;color:#475569;font-family:'Courier New',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.url-inp{
+  flex:1;padding:6px 10px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(99,102,241,0.3);
+  border-radius:20px;color:#e2e8f0;
+  font-size:12px;font-family:'Courier New',monospace;
+  outline:none;pointer-events:all;cursor:text;display:none;
+  transition:border-color 0.2s;
+}
+.url-inp:focus{border-color:rgba(99,102,241,0.7);}
+.url-inp::placeholder{color:#334155;}
+
+.url-status{font-size:11px;font-weight:600;color:#94a3b8;}
+.url-status.up{color:#4ade80;}
+.url-status.down{color:#f87171;}
+
+.url-connect-btn,.url-change-btn{
+  font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;
+  border:1px solid;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;
+}
+.url-connect-btn{color:#a78bfa;border-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.08);}
+.url-connect-btn:hover{opacity:0.8;}
+.url-change-btn{color:#475569;border-color:rgba(255,255,255,0.1);background:none;}
+.url-change-btn:hover{color:#94a3b8;}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.35}}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;}
+
+.stat{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:14px;padding:14px 10px;text-align:center;
+  transition:border-color 0.2s,transform 0.2s;
+}
+.stat:hover{border-color:rgba(255,255,255,0.14);transform:translateY(-2px);}
+.stat-ico{font-size:18px;margin-bottom:6px;}
+.stat-num{font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+.stat-lbl{font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:0.5px;}
+.stat.s1 .stat-num{color:#60a5fa;}
+.stat.s2 .stat-num{color:#4ade80;}
+.stat.s3 .stat-num{color:#a78bfa;}
+.stat.s4 .stat-num{color:#fb923c;}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin-bottom:1rem;background:rgba(255,255,255,0.03);padding:4px;border-radius:12px;border:1px solid rgba(255,255,255,0.07);}
+
+.tab{
+  flex:1;padding:9px;text-align:center;font-size:12px;font-weight:600;
+  border-radius:9px;cursor:pointer;transition:all 0.2s;color:#475569;
+  border:none;background:none;
+}
+.tab:hover{color:#94a3b8;}
+.tab.active{
+  background:rgba(99,102,241,0.15);color:#a78bfa;
+  border:1px solid rgba(99,102,241,0.25);
+}
+
+/* ── Panel ── */
+.panel{
+  background:rgba(255,255,255,0.025);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:18px;overflow:hidden;margin-bottom:1.5rem;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4);
+}
+
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Form ── */
+.form-body{padding:20px;}
+
+.form-title{font-size:14px;font-weight:600;color:#94a3b8;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.06);}
+
+.field{margin-bottom:14px;}
+
+.field label{display:block;font-size:12px;color:#64748b;margin-bottom:6px;font-weight:500;}
+
+.field input{
+  width:100%;padding:10px 14px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:9px;color:#e2e8f0;font-size:14px;
+  outline:none;pointer-events:all;cursor:text;
+  transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;
+}
+.field input:focus{
+  border-color:rgba(99,102,241,0.6);
+  background:rgba(99,102,241,0.06);
+  box-shadow:0 0 0 3px rgba(99,102,241,0.08);
+}
+.field input::placeholder{color:#334155;}
+
+.submit-btn{
+  width:100%;padding:12px;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  border:none;border-radius:10px;color:#fff;
+  font-size:14px;font-weight:600;cursor:pointer;
+  transition:opacity 0.2s,transform 0.1s;
+  box-shadow:0 4px 15px rgba(99,102,241,0.3);
+  margin-top:4px;
+}
+.submit-btn:hover{opacity:0.88;}
+.submit-btn:active{transform:scale(0.98);}
+
+/* ── Response box ── */
+.response-box{
+  margin:0 20px 20px;padding:14px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:10px;display:none;
+}
+
+.response-box.success{border-color:rgba(74,222,128,0.2);background:rgba(74,222,128,0.05);}
+.response-box.error  {border-color:rgba(248,113,113,0.2);background:rgba(248,113,113,0.05);}
+
+.resp-status{font-size:11px;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+.resp-status.ok {color:#4ade80;}
+.resp-status.err{color:#f87171;}
+
+.resp-body{
+  font-size:12px;color:#94a3b8;
+  font-family:'Courier New',monospace;
+  white-space:pre-wrap;word-break:break-all;
+  max-height:200px;overflow-y:auto;
+  line-height:1.6;
+}
+
+/* ── Token display ── */
+.token-section{
+  padding:16px 20px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:none;
+}
+
+.token-label{font-size:11px;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+
+.token-val{
+  font-size:11px;color:#6366f1;font-family:'Courier New',monospace;
+  background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15);
+  border-radius:8px;padding:8px 10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  cursor:pointer;transition:background 0.2s;margin-bottom:8px;
+}
+.token-val:hover{background:rgba(99,102,241,0.15);}
+
+/* ── Profile box ── */
+.profile-card{
+  padding:20px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:none;
+}
+
+.profile-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+
+.avatar{
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:700;color:#fff;flex-shrink:0;
+}
+
+.profile-name{font-size:16px;font-weight:600;color:#f1f5f9;}
+.profile-email{font-size:12px;color:#475569;margin-top:2px;}
+
+.profile-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;
+  background:rgba(99,102,241,0.12);color:#a78bfa;
+  border:1px solid rgba(99,102,241,0.2);margin-top:4px;
+}
+
+.profile-meta{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+
+.meta-item{
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
+  border-radius:10px;padding:10px 12px;
+}
+.meta-lbl{font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;}
+.meta-val{font-size:12px;color:#cbd5e1;font-family:'Courier New',monospace;}
+
+/* ── Logout btn ── */
+.logout-btn{
+  width:100%;margin-top:12px;padding:10px;
+  background:rgba(239,68,68,0.08);
+  border:1px solid rgba(239,68,68,0.18);
+  border-radius:10px;color:#f87171;
+  font-size:13px;font-weight:600;cursor:pointer;
+  transition:background 0.2s,transform 0.1s;
+}
+.logout-btn:hover{background:rgba(239,68,68,0.14);}
+.logout-btn:active{transform:scale(0.98);}
+
+/* ── Error banner ── */
+.err-banner{
+  font-size:12px;color:#fca5a5;
+  background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.18);
+  border-radius:8px;padding:9px 14px;margin-bottom:12px;display:none;
+}
+
+/* ── Tech pills ── */
+.tech-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;}
+
+.pill{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:500;padding:5px 12px;
+  border-radius:20px;border:1px solid;transition:opacity 0.2s;
+}
+.pill:hover{opacity:0.75;}
+.pill.b{color:#60a5fa;border-color:rgba(96,165,250,0.25);background:rgba(96,165,250,0.07);}
+.pill.o{color:#fb923c;border-color:rgba(251,146,60,0.25);background:rgba(251,146,60,0.07);}
+.pill.g{color:#4ade80;border-color:rgba(74,222,128,0.25);background:rgba(74,222,128,0.07);}
+.pill.p{color:#a78bfa;border-color:rgba(167,139,250,0.25);background:rgba(167,139,250,0.07);}
+.pd{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+@media(max-width:480px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .header h1{font-size:22px;}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="glow"></div>
+
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-icon">🔐</div>
+      <h1>JWT Auth Service</h1>
+    </div>
+    <p class="tagline">Node.js · MongoDB · Docker · Jenkins · Kubernetes</p>
+  </div>
+
+  <!-- URL Bar -->
+  <div class="url-bar">
+    <div class="url-dot" id="url-dot"></div>
+    <span class="url-text" id="url-text">Not connected</span>
+    <input class="url-inp" id="url-inp" type="text" placeholder="https://xxxx.ngrok-free.app" autocomplete="off"/>
+    <span class="url-status" id="url-status">—</span>
+    <button class="url-connect-btn" id="url-connect-btn" onclick="connect()">Connect</button>
+    <button class="url-change-btn" id="url-change-btn" onclick="editUrl()" style="display:none">change</button>
+  </div>
+
+  <!-- Error banner -->
+  <div class="err-banner" id="err-banner"></div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat s1"><div class="stat-ico">🏥</div><div class="stat-num" id="st-health">—</div><div class="stat-lbl">Health</div></div>
+    <div class="stat s2"><div class="stat-ico">🔑</div><div class="stat-num" id="st-tokens">0</div><div class="stat-lbl">Sessions</div></div>
+    <div class="stat s3"><div class="stat-ico">👤</div><div class="stat-num" id="st-user">—</div><div class="stat-lbl">Logged In</div></div>
+    <div class="stat s4"><div class="stat-ico">⚡</div><div class="stat-num" id="st-version">—</div><div class="stat-lbl">Version</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('register')">Register</button>
+    <button class="tab" onclick="switchTab('login')">Login</button>
+    <button class="tab" onclick="switchTab('refresh')">Refresh Token</button>
+    <button class="tab" onclick="switchTab('profile')">Profile</button>
+  </div>
+
+  <!-- Panel -->
+  <div class="panel">
+
+    <!-- Register -->
+    <div class="section active" id="sec-register">
+      <div class="form-body">
+        <div class="form-title">🆕 Create a new account</div>
+        <div class="field"><label>Full Name</label><input id="reg-name" type="text" placeholder="Suyog Gampawar"/></div>
+        <div class="field"><label>Email</label><input id="reg-email" type="email" placeholder="suyog@example.com"/></div>
+        <div class="field"><label>Password</label><input id="reg-pass" type="password" placeholder="Min 6 characters"/></div>
+        <button class="submit-btn" onclick="doRegister()">Create Account →</button>
+      </div>
+      <div class="response-box" id="reg-resp">
+        <div class="resp-status" id="reg-status"></div>
+        <div class="resp-body" id="reg-body"></div>
+      </div>
+      <div class="token-section" id="reg-tokens">
+        <div class="token-label">Access Token (click to copy)</div>
+        <div class="token-val" id="reg-access-token" onclick="copyToken('reg-access-token')"></div>
+        <div class="token-label">Refresh Token (click to copy)</div>
+        <div class="token-val" id="reg-refresh-token" onclick="copyToken('reg-refresh-token')"></div>
+      </div>
+    </div>
+
+    <!-- Login -->
+    <div class="section" id="sec-login">
+      <div class="form-body">
+        <div class="form-title">🔓 Sign in to your account</div>
+        <div class="field"><label>Email</label><input id="log-email" type="email" placeholder="suyog@example.com"/></div>
+        <div class="field"><label>Password</label><input id="log-pass" type="password" placeholder="Your password"/></div>
+        <button class="submit-btn" onclick="doLogin()">Login →</button>
+      </div>
+      <div class="response-box" id="log-resp">
+        <div class="resp-status" id="log-status"></div>
+        <div class="resp-body" id="log-body"></div>
+      </div>
+      <div class="token-section" id="log-tokens">
+        <div class="token-label">Access Token (click to copy)</div>
+        <div class="token-val" id="log-access-token" onclick="copyToken('log-access-token')"></div>
+        <div class="token-label">Refresh Token (click to copy)</div>
+        <div class="token-val" id="log-refresh-token" onclick="copyToken('log-refresh-token')"></div>
+      </div>
+    </div>
+
+    <!-- Refresh -->
+    <div class="section" id="sec-refresh">
+      <div class="form-body">
+        <div class="form-title">🔄 Get a new access token</div>
+        <div class="field"><label>Refresh Token</label><input id="ref-token" type="text" placeholder="Paste your refresh token here"/></div>
+        <button class="submit-btn" onclick="doRefresh()">Refresh Tokens →</button>
+      </div>
+      <div class="response-box" id="ref-resp">
+        <div class="resp-status" id="ref-status"></div>
+        <div class="resp-body" id="ref-body"></div>
+      </div>
+      <div class="token-section" id="ref-tokens">
+        <div class="token-label">New Access Token (click to copy)</div>
+        <div class="token-val" id="ref-access-token" onclick="copyToken('ref-access-token')"></div>
+        <div class="token-label">New Refresh Token (click to copy)</div>
+        <div class="token-val" id="ref-refresh-token" onclick="copyToken('ref-refresh-token')"></div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="section" id="sec-profile">
+      <div class="form-body">
+        <div class="form-title">👤 View your profile</div>
+        <div class="field"><label>Access Token</label><input id="prof-token" type="text" placeholder="Paste your access token here"/></div>
+        <button class="submit-btn" onclick="doProfile()">Get Profile →</button>
+      </div>
+      <div class="response-box" id="prof-resp">
+        <div class="resp-status" id="prof-status"></div>
+        <div class="resp-body" id="prof-body"></div>
+      </div>
+      <div class="profile-card" id="prof-card">
+        <div class="profile-row">
+          <div class="avatar" id="prof-avatar">?</div>
+          <div>
+            <div class="profile-name" id="prof-name">—</div>
+            <div class="profile-email" id="prof-email">—</div>
+            <div class="profile-badge" id="prof-role">user</div>
+          </div>
+        </div>
+        <div class="profile-meta">
+          <div class="meta-item"><div class="meta-lbl">User ID</div><div class="meta-val" id="prof-id">—</div></div>
+          <div class="meta-item"><div class="meta-lbl">Status</div><div class="meta-val" id="prof-status2">—</div></div>
+          <div class="meta-item"><div class="meta-lbl">Created</div><div class="meta-val" id="prof-created">—</div></div>
+          <div class="meta-item"><div class="meta-lbl">Last Login</div><div class="meta-val" id="prof-login">—</div></div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Sign Out from This Device</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tech pills -->
+  <div class="tech-row">
+    <div class="pill b"><div class="pd"></div>Docker</div>
+    <div class="pill o"><div class="pd"></div>Jenkins</div>
+    <div class="pill g"><div class="pd"></div>Kubernetes</div>
+    <div class="pill p"><div class="pd"></div>JWT + MongoDB</div>
+  </div>
+
+</div>
+
+<script>
+const NGROK_HEADERS = {
+  'Content-Type': 'application/json',
+  'ngrok-skip-browser-warning': 'true'
+};
+
+let API = localStorage.getItem('auth_api_url') || '';
+let accessToken  = localStorage.getItem('auth_access_token')  || '';
+let refreshToken = localStorage.getItem('auth_refresh_token') || '';
+let tokenCount   = 0;
+
+function showErr(m) {
+  const b = document.getElementById('err-banner');
+  b.textContent = m; b.style.display = 'block';
+  setTimeout(() => b.style.display = 'none', 5000);
+}
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: { ...NGROK_HEADERS, ...(opts.headers || {}) }
+  });
+  const data = await res.json();
+  return { status: res.status, ok: res.ok, data };
+}
+
+function connect() {
+  const val = document.getElementById('url-inp').value.trim().replace(/\/+$/, '');
+  if (!val.startsWith('http')) { alert('Enter a valid URL starting with https://'); return; }
+  API = val;
+  localStorage.setItem('auth_api_url', API);
+  switchToConnected();
+  checkHealth();
+}
+
+function editUrl() {
+  document.getElementById('url-inp').style.display = 'block';
+  document.getElementById('url-text').style.display = 'none';
+  document.getElementById('url-connect-btn').style.display = 'inline-flex';
+  document.getElementById('url-change-btn').style.display = 'none';
+  document.getElementById('url-inp').value = API;
+  document.getElementById('url-inp').focus();
+}
+
+function switchToConnected() {
+  document.getElementById('url-inp').style.display = 'none';
+  document.getElementById('url-text').style.display = 'block';
+  document.getElementById('url-text').textContent = API;
+  document.getElementById('url-connect-btn').style.display = 'none';
+  document.getElementById('url-change-btn').style.display = 'inline-flex';
+}
+
+async function checkHealth() {
+  if (!API) return;
+  try {
+    const { data, ok } = await apiFetch('/health');
+    const dot = document.getElementById('url-dot');
+    const stat = document.getElementById('url-status');
+    if (ok && data.status === 'UP') {
+      dot.className = 'url-dot g';
+      stat.textContent = 'UP'; stat.className = 'url-status up';
+      document.getElementById('st-health').textContent = '✅';
+      document.getElementById('st-version').textContent = data.version || '1.0.0';
+    } else {
+      dot.className = 'url-dot r';
+      stat.textContent = 'DOWN'; stat.className = 'url-status down';
+      document.getElementById('st-health').textContent = '❌';
+    }
+  } catch {
+    document.getElementById('url-dot').className = 'url-dot r';
+    document.getElementById('url-status').textContent = 'Offline';
+    document.getElementById('url-status').className = 'url-status down';
+    document.getElementById('st-health').textContent = '❌';
+  }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['register','login','refresh','profile'][i] === name);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+}
+
+function showResp(prefix, ok, status, data) {
+  const box = document.getElementById(prefix + '-resp');
+  const st  = document.getElementById(prefix + '-status');
+  const bd  = document.getElementById(prefix + '-body');
+  box.style.display = 'block';
+  box.className = 'response-box ' + (ok ? 'success' : 'error');
+  st.className = 'resp-status ' + (ok ? 'ok' : 'err');
+  st.textContent = `HTTP ${status} — ${ok ? 'SUCCESS' : 'ERROR'}`;
+  bd.textContent = JSON.stringify(data, null, 2);
+}
+
+function showTokens(prefix, access, refresh) {
+  const sec = document.getElementById(prefix + '-tokens');
+  sec.style.display = 'block';
+  document.getElementById(prefix + '-access-token').textContent  = access;
+  document.getElementById(prefix + '-refresh-token').textContent = refresh;
+  accessToken  = access;  refreshToken = refresh;
+  localStorage.setItem('auth_access_token',  access);
+  localStorage.setItem('auth_refresh_token', refresh);
+  tokenCount++;
+  document.getElementById('st-tokens').textContent = tokenCount;
+}
+
+function copyToken(id) {
+  const val = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(val).then(() => {
+    const el = document.getElementById(id);
+    const orig = el.textContent;
+    el.textContent = '✅ Copied!';
+    setTimeout(() => el.textContent = orig, 1500);
+  });
+}
+
+async function doRegister() {
+  if (!API) { showErr('Connect to your API URL first.'); return; }
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
+  const { status, ok, data } = await apiFetch('/api/auth/register', {
+    method: 'POST', body: JSON.stringify({ name, email, password })
+  });
+  showResp('reg', ok, status, data);
+  if (ok && data.data) {
+    showTokens('reg', data.data.accessToken, data.data.refreshToken);
+    document.getElementById('st-user').textContent = data.data.user?.name?.split(' ')[0] || '✓';
+  }
+}
+
+async function doLogin() {
+  if (!API) { showErr('Connect to your API URL first.'); return; }
+  const email = document.getElementById('log-email').value.trim();
+  const password = document.getElementById('log-pass').value;
+  const { status, ok, data } = await apiFetch('/api/auth/login', {
+    method: 'POST', body: JSON.stringify({ email, password })
+  });
+  showResp('log', ok, status, data);
+  if (ok && data.data) {
+    showTokens('log', data.data.accessToken, data.data.refreshToken);
+    document.getElementById('st-user').textContent = data.data.user?.name?.split(' ')[0] || '✓';
+    document.getElementById('prof-token').value = data.data.accessToken;
+    document.getElementById('ref-token').value  = data.data.refreshToken;
+  }
+}
+
+async function doRefresh() {
+  if (!API) { showErr('Connect to your API URL first.'); return; }
+  const token = document.getElementById('ref-token').value.trim();
+  const { status, ok, data } = await apiFetch('/api/auth/refresh', {
+    method: 'POST', body: JSON.stringify({ refreshToken: token })
+  });
+  showResp('ref', ok, status, data);
+  if (ok && data.data) {
+    showTokens('ref', data.data.accessToken, data.data.refreshToken);
+  }
+}
+
+async function doProfile() {
+  if (!API) { showErr('Connect to your API URL first.'); return; }
+  const token = document.getElementById('prof-token').value.trim();
+  const { status, ok, data } = await apiFetch('/api/users/me', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  showResp('prof', ok, status, data);
+  if (ok && data.data) {
+    const u = data.data;
+    document.getElementById('prof-card').style.display = 'block';
+    document.getElementById('prof-avatar').textContent = u.name?.[0]?.toUpperCase() || '?';
+    document.getElementById('prof-name').textContent   = u.name || '—';
+    document.getElementById('prof-email').textContent  = u.email || '—';
+    document.getElementById('prof-role').textContent   = u.role || 'user';
+    document.getElementById('prof-id').textContent     = u._id?.slice(-8) || '—';
+    document.getElementById('prof-status2').textContent = u.isActive ? '🟢 Active' : '🔴 Inactive';
+    document.getElementById('prof-created').textContent = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—';
+    document.getElementById('prof-login').textContent   = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'First login';
+  }
+}
+
+async function doLogout() {
+  if (!API) return;
+  const token = document.getElementById('prof-token').value.trim();
+  await apiFetch('/api/auth/logout', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ refreshToken })
+  });
+  localStorage.removeItem('auth_access_token');
+  localStorage.removeItem('auth_refresh_token');
+  document.getElementById('prof-card').style.display = 'none';
+  document.getElementById('prof-resp').style.display = 'none';
+  document.getElementById('st-user').textContent = '—';
+  document.getElementById('prof-token').value = '';
+  switchTab('login');
+}
+
+// Keyboard shortcuts
+document.getElementById('url-inp').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+document.querySelectorAll('.field input').forEach(inp => {
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') e.target.closest('.section').querySelector('.submit-btn').click(); });
+});
+
+// Init
+if (API) {
+  switchToConnected();
+  checkHealth();
+  if (accessToken) {
+    document.getElementById('prof-token').value = accessToken;
+    document.getElementById('st-user').textContent = '✓';
+    tokenCount = 1;
+    document.getElementById('st-tokens').textContent = tokenCount;
+  }
+  if (refreshToken) document.getElementById('ref-token').value = refreshToken;
+} else {
+  document.getElementById('st-health').textContent = '—';
+}
+
+setInterval(checkHealth, 15000);
+</script>
+</body>
+</html>

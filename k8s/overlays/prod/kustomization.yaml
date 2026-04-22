@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: auth-prod
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+images:
+  - name: your-dockerhub-username/jwt-auth-service
+    newTag: IMAGE_TAG_PLACEHOLDER
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: jwt-auth-service
+
+configMapGenerator:
+  - name: auth-config
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - APP_VERSION=stable
